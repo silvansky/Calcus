@@ -15,12 +15,15 @@ QScriptValue printToLog(QScriptContext* sc, QScriptEngine* se)
 	for (int i = 0; i < sc->argumentCount(); i++)
 		str << sc->argument(i).toString();
 	CalcusDlg::log->append(str.join(" "));
-	CalcusDlg::log->show();
-	CalcusDlg::log->move(CalcusDlg::instance->pos().x() + CalcusDlg::instance->width(), CalcusDlg::instance->pos().y());
+	CalcusDlg::instance->showLog();
+	QTextCursor c = CalcusDlg::log->textCursor();
+	c.movePosition(QTextCursor::End);
+	CalcusDlg::log->setTextCursor(c);
 	return se->undefinedValue();
 }
 
 LogOutput * CalcusDlg::log = NULL;
+QDockWidget * CalcusDlg::logDock = NULL;
 CalcusDlg * CalcusDlg::instance = NULL;
 
 CalcusDlg::CalcusDlg(QWidget *parent) :
@@ -29,19 +32,27 @@ CalcusDlg::CalcusDlg(QWidget *parent) :
 {
 	ui->setupUi(this);
 	ui->expr->installEventFilter(this);
-	//connect(ui->expr, SIGNAL(textChanged()), SLOT(exprChanged()));
 	exprHistoryIndex = -1;
 	ui->expr->setFocus();
 	if (!log)
 	{
 		log = ui->log;
-		log->setParent(NULL);
 		log->setWindowTitle("Calcus Output");
+		connect(this, SIGNAL(rejected()), log, SLOT(close()));
+		QFont monospaceFont("Monospace", 9);
+		monospaceFont.setStyleHint(QFont::TypeWriter);
+		log->setFont(monospaceFont);
 	}
 	if (!instance)
 	{
 		instance = this;
 	}
+	if (!logDock)
+	{
+		logDock = ui->logDock;
+		connect(logDock, SIGNAL(visibilityChanged(bool)), SLOT(dockVisibilityChanged(bool)));
+	}
+	logDock->hide();
 }
 
 CalcusDlg::~CalcusDlg()
@@ -147,6 +158,11 @@ void CalcusDlg::addLineToHistory()
 	ui->history->ensureCursorVisible();
 }
 
+void CalcusDlg::showLog()
+{
+	ui->toggleLog->setChecked(true);
+}
+
 void CalcusDlg::on_calc_clicked()
 {
 	static QScriptEngine * engine = 0;
@@ -155,6 +171,9 @@ void CalcusDlg::on_calc_clicked()
 		engine = new QScriptEngine;
 		CalcusMath::registerWrappers(engine);
 		engine->globalObject().setProperty("print", engine->newFunction(printToLog));
+		engine->evaluate("function hex(n) { return Number(n).toString(16); }");
+		engine->evaluate("function bin(n) { return Number(n).toString(2); }");
+		engine->evaluate("function oct(n) { return Number(n).toString(8); }");
 	}
 	QString expr = ui->expr->text();
 	if (!expr.length())
@@ -181,4 +200,28 @@ void CalcusDlg::exprChanged()
 {
 	if (exprHistoryIndex != -1)
 		exprHistoryIndex = -1;
+}
+
+void CalcusDlg::on_clearLog_clicked()
+{
+	log->clear();
+}
+
+void CalcusDlg::on_toggleLog_toggled(bool checked)
+{
+	if (checked)
+	{
+		ui->toggleLog->setArrowType(Qt::UpArrow);
+		ui->logDock->show();
+	}
+	else
+	{
+		ui->toggleLog->setArrowType(Qt::DownArrow);
+		ui->logDock->hide();
+	}
+}
+
+void CalcusDlg::dockVisibilityChanged(bool visible)
+{
+	ui->toggleLog->setChecked(visible);
 }

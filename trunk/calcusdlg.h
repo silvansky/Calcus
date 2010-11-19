@@ -4,6 +4,7 @@
 #include <QDialog>
 #include <Qt>
 #include <QtScript>
+#include <QDockWidget>
 #include "logoutput.h"
 
 namespace Ui {
@@ -25,15 +26,22 @@ protected:
 	void addTextToHistory(const QString& text, Qt::Alignment align);
 	void addLineToHistory();
 
+public slots:
+	void showLog();
+
 private slots:
 	void on_calc_clicked();
 	void exprChanged();
+	void on_clearLog_clicked();
+	void on_toggleLog_toggled(bool checked);
+	void dockVisibilityChanged(bool visible);
 
 private:
 	Ui::CalcusDlg *ui;
 	QList<QString> exprHistory;
 	int exprHistoryIndex;
 	static LogOutput * log;
+	static QDockWidget * logDock;
 	static CalcusDlg * instance;
 };
 
