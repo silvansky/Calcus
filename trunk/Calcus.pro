@@ -29,5 +29,9 @@ win32: {
     RC_FILE = calcus.rc
 }
 
+macx: {
+    ICON = Calcus.icns
+}
+
 OTHER_FILES += \
     calcus.rc
